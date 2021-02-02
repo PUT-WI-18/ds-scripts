@@ -2,7 +2,7 @@
 Decission Support task solving scripts
 
 ## What and where
-Everyone is encouraged to pickup and and solve issues from issues board. Just remember to drop some note how to use your code, and give some meaningful example. Each solver ought to be in separated directory. Language of choice is Python 3.6.8+ as of neatness and setup simplicity. Each dependency / additional package should be placed in main `requirements.txt` file.
+Everyone is encouraged to pickup and and solve issues from issues board. Just remember to drop some note how to use your code, and give some meaningful example. Don't forget to mark yourself as asignee so noone other try to make same script. Each solver ought to be in separated directory. Language of choice is Python 3.6.8+ as of neatness and setup simplicity. Each dependency / additional package should be placed in main `requirements.txt` file.
 
 ## How to use
 1. Install needed packages. e.g.  
