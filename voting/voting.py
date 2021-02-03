@@ -1,0 +1,597 @@
+from enum import Enum
+from typing import List
+from typing import Tuple
+from typing import Dict
+from typing import Set
+from itertools import permutations
+
+class ConversionError(Exception):
+    pass
+
+class WrongRepresentationException(Exception):
+    pass
+
+class VotingType(Enum):
+    PLURALITY = 1
+    ANTI_PLURALITY = 2
+    APPROVAL = 3
+    PLURALITY_RUN_OFF = 4
+    STV = 5
+    BORDA = 6
+    CONDORCETE = 7
+    COPELAND = 8
+    KAMMENY = 9
+    COOMBS = 10
+    BALDWIN = 11
+    DHONDT = 12
+    SAINTE_LEAGUE = 13
+
+class Candidate:
+    def __init__(self, name: str, votes: int = 0):
+        self.name: str = name
+        self.votes: int = votes
+    
+    def __str__(self) -> str:
+        result: str = "Candidate\n"
+        result += "votes: " + str(self.votes) + "\n"
+        result += "name: " + str(self.name) + "\n"
+        return result
+
+class Ranking:
+    def __init__(self, profile: str):
+        self.candidates: List[Candidate] = []
+        self.votes: int = 0
+        self._convert_str_to_object(profile)
+        
+    def _convert_str_to_object(self, string: str):
+        # sample input 
+        # A > B > C > D : 20
+        string = string.replace(" ", "")
+        self.votes = int(string.split(":")[1])
+        string = string.split(":")[0]
+        candidate_names = string.split(">")
+        for name in candidate_names:
+            self.candidates.append(
+                Candidate(name, self.votes)
+            )
+    
+    def is_before(self, a: Candidate, b: Candidate) -> bool:
+        a_pos = 6732487
+        b_pos = 6732487
+        i = 0
+        for candidate in self.candidates:
+            if candidate.name == a.name:
+                a_pos = i
+            if candidate.name == b.name:
+                b_pos = i
+            i += 1
+        return a_pos < b_pos
+    
+    def last_candidate(self) -> Candidate:
+        return self.candidates[len(self.candidates) - 1]
+        
+    def first_candidate(self) -> Candidate:
+        return self.candidates[0]
+    
+    def remove_candidate(self, candidate_name: str):
+        self.candidates = [c for c in self.candidates if c.name != candidate_name]
+    
+    def __str__(self) -> str:
+        response: str = ""
+        for candidate in self.candidates:
+            response += "{} > ".format(candidate.name)
+        response = response[:-3]
+        response += " : {}".format(candidate.votes)
+        return response
+        
+class Preference:
+    def __init__(self):
+        pass
+
+class PreferenceMatrix(Preference):
+    def __init__(self):
+        self.candidates: List[Candidate] = []
+        self.votes: List[List[Tuple[int]]] = []
+    
+    def add_candidates(self, string: str):
+        # sample
+        # A B C D E
+        candidates_names = string.split(" ")
+        for name in candidates_names:
+            self.candidates.append(
+                Candidate(name, 0)
+            )
+
+    def add_row(self, string: str):
+        # sample
+        # 10/21 0/0 12/19 21/10
+        cells = string.split(" ")
+        row = []
+        for cell in cells:
+            fields = cell.split("/")
+            row.append((fields[0], fields[1]))
+        self.votes.append(row)
+    
+    def __str__(self) -> str:
+        result = "Preference Matrix: \n"
+        for candidate in self.candidates:
+            result += candidate.name
+            result += "\t"
+        result += "\n"
+        for row in self.votes:
+            for field in row:
+                result += field[0] + "/" + field[1] + "\t"
+            result += "\n"
+        return result
+
+class PreferenceProfile(Preference):
+    def __init__(self):
+        self.rankings: [Ranking] = []
+        self.total_votes: int = 0
+        self.candidates_names: Set[str] = set()
+    
+    def add_ranking(self, ranking: str):
+        ranking = Ranking(ranking)
+        self.rankings.append(ranking)
+        self.total_votes += ranking.votes
+        self._add_candidate_names(ranking)
+        
+    def _add_candidate_names(self, ranking: Ranking) -> Set[str]:
+        for candidate in ranking.candidates:
+            self.candidates_names.add(candidate.name)
+        return self.candidates_names
+        
+    def remove_candidate(self, candidate_name: str):
+        self.candidates_names = set()
+        for ranking_idx in range(len(self.rankings)):
+            self.rankings[ranking_idx].remove_candidate(candidate_name)
+            self._add_candidate_names(self.rankings[ranking_idx])
+            
+    def to_preference_matrix(self) -> PreferenceMatrix:
+        wins: Dict[str, int] = {}
+        for ranking in self.rankings:
+            better_candidate_idx: int = 0
+            ranking_length = len(ranking.candidates)
+            while better_candidate_idx < ranking_length:
+                for worser_candidate_idx in range(better_candidate_idx + 1, ranking_length):
+                    try:
+                        wins[ranking.candidates[better_candidate_idx].name + ranking.candidates[worser_candidate_idx].name] += ranking.votes
+                    except:
+                        wins[ranking.candidates[better_candidate_idx].name + ranking.candidates[worser_candidate_idx].name] = ranking.votes
+                missing_candidates = list(self.candidates_names - set(map(lambda e: e.name, ranking.candidates)))
+                for missing_candidate_idx in range(len(missing_candidates)):
+                    try:
+                        wins[ranking.candidates[better_candidate_idx].name + missing_candidates[missing_candidate_idx]] += ranking.votes
+                    except:
+                        wins[ranking.candidates[better_candidate_idx].name + missing_candidates[missing_candidate_idx]] = ranking.votes
+                better_candidate_idx += 1
+        # print(wins)
+        pm = PreferenceMatrix()
+        pm.add_candidates(" ".join(self.candidates_names))
+        for better_candidate_name in self.candidates_names:
+            row: str = ""
+            for worser_candidate_name in self.candidates_names:
+                try:
+                    row += str(wins[better_candidate_name + worser_candidate_name]) + "/" + str(self.total_votes - wins[better_candidate_name + worser_candidate_name]) + " "
+                except:
+                    if better_candidate_name == worser_candidate_name:
+                        row += "0/0 "
+                    else:
+                        row += "0/" + str(self.total_votes) + " "
+            row = row[:-1]
+            pm.add_row(row)
+        return pm
+            
+    
+    def __str__(self) -> str:
+        response: str = ""
+        response += "PreferenceProfile\n"
+        for ranking in self.rankings:
+            response += str(ranking) + "\n"
+        response += "Candidates names: " + " ".join(self.candidates_names) + "\n"
+        response += "Total votes: " + str(self.total_votes) + "\n"
+        return response
+      
+class Token:
+    def __init__(self, token_sign: str):
+        self.token_string: str = token_sign
+        
+    def __str__(self) -> str:
+        return self.token_string + " "
+        
+    def __repr__(self):
+        return __str__()
+        
+class Tokens(Enum):
+    BETTER = Token(">")
+    WORSE = Token("<")
+    SAME = Token("~")
+    
+    def __str__(self):
+        return str(self.value)
+     
+class VotingResult:
+    def __init__(self):
+        self.token_sequence: List[Token] = []  
+                
+    def tokenize_candidate(self, candidate: Candidate) -> str:
+        return Token(candidate.name)
+    
+    def candidate(self, candidate: Candidate):
+        self.token_sequence.append(self.tokenize_candidate(candidate))
+        return self
+    
+    def better(self):
+        self.token_sequence.append(Tokens.BETTER)
+        return self
+    
+    def worser(self):
+        self.token_sequence.append(Tokens.WORSE)
+        return self
+        
+    def same(self):
+        self.token_sequence.append(Tokens.SAME)
+        return self
+        
+    def __str__(self) -> str:
+        result: str = ""
+        for t in self.token_sequence:
+            result += str(t) + " "
+        return result
+    
+class Rule:
+    def __init__(self, votes: Preference):
+        self.preference: Preference = votes
+        self.preference_matrix = self._create_preference_matrix(votes)
+        self.preference_profile = self._create_preference_profile(votes)
+        
+        print(self.preference_matrix)
+        print(self.preference_profile)
+    
+    def _create_preference_matrix(self, votes: Preference) -> PreferenceMatrix:
+        if isinstance(votes, PreferenceMatrix):
+            return votes
+        else:
+            return votes.to_preference_matrix()
+    
+    def _create_preference_profile(self, votes: Preference) -> PreferenceProfile:
+        if isinstance(votes, PreferenceProfile):
+            return votes
+        else:
+            return None
+            
+    def _has_preference_profile(self) -> bool:
+        if self.preference_profile is None:
+            raise WrongRepresentationException
+        else:
+            return True
+            
+    def run(self) -> VotingResult:
+        raise NotImplementedError
+            
+class PluralityRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> Candidate:
+        winners_votes: Dict[str, int] = dict()
+        for ranking in self.preference_profile.rankings:
+            try:
+                winners_votes[ranking.first_candidate().name] += ranking.first_candidate().votes
+            except:
+                winners_votes[ranking.first_candidate().name] = ranking.first_candidate().votes
+        winning_candidate: Candidate = Candidate('ASFASF', -1)
+        voting_result: VotingResult = VotingResult()
+        for winner in winners_votes.keys():
+            if winners_votes[winner] > winning_candidate.votes:
+                winning_candidate = Candidate(winner, winners_votes[winner])
+                voting_result = VotingResult().candidate(winning_candidate)
+            elif winners_votes[winner] == winning_candidate.votes:
+                voting_result.same().candidate(Candidate(winner, winners_votes[winner]))
+        return voting_result
+        
+class AntiPluralityRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+    
+    def run(self) -> Candidate:
+        winners_votes: Dict[str, int] = dict()
+        for ranking in self.preference_profile.rankings:
+            try:
+                winners_votes[ranking.last_candidate().name] += ranking.last_candidate().votes
+            except:
+                winners_votes[ranking.last_candidate().name] = ranking.last_candidate().votes
+        winning_candidate: Candidate = Candidate('ASFASF', 75643211234567)
+        voting_result: VotingResult = VotingResult()
+        for winner in winners_votes.keys():
+            if winners_votes[winner] < winning_candidate.votes:
+                winning_candidate = Candidate(winner, winners_votes[winner])
+                voting_result = VotingResult().candidate(winning_candidate)
+            elif winners_votes[winner] == winning_candidate.votes:
+                voting_result.same().candidate(Candidate(winner, winners_votes[winner]))
+        return voting_result
+
+class ApprovalRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        total_votes: Dict[str, int] = dict()
+        for ranking in self.preference_profile.rankings:
+            for candidate in ranking.candidates:
+                try:
+                    total_votes[candidate.name] += candidate.votes
+                except:
+                    total_votes[candidate.name] = candidate.votes
+        voting_result: VotingResult = VotingResult()
+        winning_candidate: Candidate = Candidate("gfhjkgfds", -1)
+        for candidate_name, votes in total_votes.items():
+            if winning_candidate.votes < votes:
+                winning_candidate = Candidate(candidate_name, votes)
+                voting_result = VotingResult()
+                voting_result.candidate(winning_candidate)
+            elif winning_candidate.votes == votes:
+                voting_result.same().candidate(Candidate(candidate_name, votes))
+        return voting_result
+
+class PluralityRunOffRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        first_places: Dict[str, int] = dict()
+        for ranking in self.preference_profile.rankings:
+            try:
+                first_places[ranking.first_candidate().name] += ranking.first_candidate().votes
+            except:
+                first_places[ranking.first_candidate().name] = ranking.first_candidate().votes
+        first_places = dict(sorted(first_places.items(), key=lambda item: item[1], reverse=True))
+        first: Candidate = Candidate(list(first_places)[0], 0)
+        second: Candidate = Candidate(list(first_places)[1], 0)
+        for ranking in self.preference_profile.rankings:
+            if ranking.is_before(first, second):
+                first.votes += ranking.votes
+            else:
+                second.votes += ranking.votes
+        if(first.votes > second.votes):
+            return VotingResult().candidate(first)
+        elif second.votes > first.votes:
+            return VotingResult().candidate(second)
+        else:
+            return VotingResult().candidate(first).same().candidate(second)
+            
+class SingleTransferableVoteRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        while True:
+            first_places: Dict[str, int] = dict()
+            for ranking in self.preference_profile.rankings:
+                try:
+                    first_places[ranking.first_candidate().name] += ranking.first_candidate().votes
+                except:
+                    first_places[ranking.first_candidate().name] = ranking.first_candidate().votes
+            first_places = dict(sorted(first_places.items(), key=lambda item: item[1]))
+            removed_candidate_name = list(first_places)[0]
+            self.preference_profile.remove_candidate(removed_candidate_name)
+            first_places: Dict[str, int] = dict()
+            for ranking in self.preference_profile.rankings:
+                try:
+                    first_places[ranking.first_candidate().name] += ranking.first_candidate().votes
+                except:
+                    first_places[ranking.first_candidate().name] = ranking.first_candidate().votes
+            first_places = dict(sorted(first_places.items(), key=lambda item: item[1], reverse=True))
+            first_candidate_name = list(first_places)[0]
+            if first_places[first_candidate_name] > self.preference_profile.total_votes // 2:
+                return VotingResult().candidate(Candidate(first_candidate_name, first_places[first_candidate_name]))
+            elif len(first_places) == 2:
+                second_candidate_name = list(first_places)[1]
+                return VotingResult().candidate(Candidate(first_candidate_name, first_places[first_candidate_name])).same().candidate(Candidate(second_candidate_name, first_places[second_candidate_name]))
+
+class CondorceteRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        
+    def run(self) -> VotingResult:
+        for row_idx in range(len(self.preference_matrix.votes)):
+            all_won: bool = True
+            for field in self.preference_matrix.votes[row_idx]:
+                if field[0] < field[1] or (field[0] == 0 and field[1] == 0):
+                    all_won = False
+                    break
+            if all_won:
+                return VotingResult().candidate(self.preference_matrix.candidates[row_idx])
+                    
+class CopelandRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+    
+    def run(self) -> VotingResult:
+        max_win_lose_difference_value: int = -1
+        voting_result: VotingResult = VotingResult()
+        for row_idx in range(len(self.preference_matrix.votes)):
+            win_lose_difference: int = 0
+            for field in self.preference_matrix.votes[row_idx]:
+                if field[0] > field[1]:
+                    win_lose_difference += 1
+                elif field[0] < field[1]:
+                    win_lose_difference -= 1
+            if win_lose_difference > max_win_lose_difference_value:
+                max_win_lose_difference_value = win_lose_difference
+                voting_result = VotingResult()
+                voting_result.candidate(self.preference_matrix.candidates[row_idx])
+            elif win_lose_difference == max_win_lose_difference_value:
+                voting_result.same().candidate(self.preference_matrix.candidates[row_idx])
+                
+        return voting_result
+        
+class KamenyRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+    
+    def run(self) -> VotingResult:
+        all_permutations: List[List[str]] = list(permutations(self.preference_profile.candidates_names))
+        best_permutation: List[str] = list()
+        best_permutation_score: int = -1
+        for permutation in all_permutations:
+            score: int = 0
+            for better_candidate_idx in range(len(permutation)):
+                for worse_candidate_idx in range(better_candidate_idx + 1, len(permutation)):
+                    for ranking in self.preference_profile.rankings:
+                        if ranking.is_before(Candidate(permutation[better_candidate_idx], 0), Candidate(permutation[worse_candidate_idx], 0)):
+                            score += ranking.votes
+            if score > best_permutation_score:
+                best_permutation = permutation
+                best_permutation_score = score
+        voting_result = VotingResult()
+        for candidate in best_permutation:
+            voting_result.candidate(Candidate(candidate, 0)).better()
+        return voting_result
+                  
+class CoombsRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        while True:
+            last_places: Dict[str, int] = {}
+            for ranking in self.preference_profile.rankings:
+                last_candidate: Candidate = ranking.last_candidate()
+                try:
+                    last_places[last_candidate.name] += last_candidate.votes
+                except:
+                    last_places[last_candidate.name] = last_candidate.votes
+            last_places = dict(sorted(last_places.items(), key=lambda item: item[1], reverse=True))
+            self.preference_profile.remove_candidate(list(last_places)[0])
+            first_places: Dict[str, int] = {}
+            for ranking in self.preference_profile.rankings:
+                try:
+                    first_places[ranking.first_candidate().name] += ranking.first_candidate().votes
+                except:
+                    first_places[ranking.first_candidate().name] = ranking.first_candidate().votes
+            first_places = dict(sorted(first_places.items(), key=lambda item: item[1], reverse=True))
+            first_candidate: Candidate = Candidate(list(first_places)[0], first_places[list(first_places)[0]])
+            if first_candidate.votes > self.preference_profile.total_votes // 2:
+                return VotingResult().candidate(first_candidate)
+            elif len(first_places) == 2:
+                second_candidate: Candidate = Candidate(list(first_places)[1], first_places[list(first_places)[1]])
+                return VotingResult().candidate(first_candidate).same().candidate(second_candidate)
+        
+class BordaRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        points: Dict[str, int] = {}
+        for ranking in self.preference_profile.rankings:
+            mult = len(self.preference_profile.candidates_names) - 1
+            for candidate in ranking.candidates:
+                try:
+                    points[candidate.name] += candidate.votes * mult
+                except:
+                    points[candidate.name] = candidate.votes * mult
+                mult -= 1
+        points = dict(sorted(points.items(), key=lambda item: item[1], reverse=True))
+        highest_points = points[list(points)[0]]
+        voting_result = VotingResult()
+        for candidate_name, candidate_points in points.items():
+            if candidate_points == highest_points:
+                voting_result.candidate(Candidate(candidate_name, candidate_points)).same()
+        return voting_result
+        
+class BaldwinRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+        super()._has_preference_profile()
+        
+    def run(self) -> VotingResult:
+        while True:
+            points: Dict[str, int] = {}
+            for ranking in self.preference_profile.rankings:
+                mult = len(self.preference_profile.candidates_names) - 1
+                for candidate in ranking.candidates:
+                    try:
+                        points[candidate.name] += candidate.votes * mult
+                    except:
+                        points[candidate.name] = candidate.votes * mult
+                    mult -= 1
+            points = dict(sorted(points.items(), key=lambda item: item[1], reverse=False))
+            self.preference_profile.remove_candidate(list(points)[0])
+            total_votes: Dict[str, int] = {}
+            for ranking in self.preference_profile.rankings:
+                try:
+                    total_votes[ranking.first_candidate().name] += ranking.first_candidate().votes
+                except:
+                        total_votes[ranking.first_candidate().name] = ranking.first_candidate().votes
+            total_votes = dict(sorted(total_votes.items(), key=lambda item: item[1], reverse=True))
+            first_candidate: Candidate = Candidate(list(total_votes)[0], total_votes[list(total_votes)[0]])
+            if first_candidate.votes > (self.preference_profile.total_votes // 2):
+                return VotingResult().candidate(first_candidate)
+            elif len(total_votes) == 2:
+                second_candidate: Candidate = andidate(list(total_votes)[1], total_votes[list(total_votes)[1]])
+                return VotingResult().candidate(first_candidate).same().candidate(second_candidate)
+        
+class Voting():
+    def __init__(self):
+        self._run()
+    
+    def _ask_voting_procedure(self) -> VotingType:
+        print("Choose voting procedure, available are: ")
+        print("Plurality Rule -> 1")
+        print("Antiplurality rule -> 2")
+        print("Approval voting -> 3")
+        print("Plurality run-off -> 4")
+        print("Single Transferable Voite -> 5")
+        print("Borda Rule -> 6")
+        print("Condorcete -> 7")
+        print("Copeland Rule -> 8")
+        print("Kammeny Rule -> 9")
+        print("Coombs rule -> 10")
+        print("Baldwin Rule -> 11")
+        print("d'Hondt Rule -> 12")
+        print("Sainte-Lague Rule -> 13")
+        type: str =  input("\nVoting procedure? ")
+        if(int(type) > 0 and int(type) < 14):
+            return VotingType(int(type))
+        else:
+            print("\nType {} not known \n. Chose agine\n".format(type))
+            self._ask_voting_procedure()
+    
+    def _collect_input_as_profiles(self):
+        print("\n\nType \"end\" to stop")
+        print("Data format is: candidate1 > candidate2 > candidate3 > ... : <number of votes>")
+        while True:
+            profile: str = input()
+    
+    def _run(self):
+        while True:
+            voting_type: VotingType = self._ask_voting_procedure()
+            if voting_type == VotingType.PLURALITY:
+                pass
+
+if __name__ == "__main__":
+    # Voting()
+    pp = PreferenceProfile()
+    pp.add_ranking("A > B > D > C: 2")
+    pp.add_ranking("A > C > D > B: 7")
+    pp.add_ranking("C > B > A > D: 10")
+    # pp.add_ranking("B > C > A : 24")
+    # pp.add_ranking("D > C > A: 4")
+    # pp.add_ranking("C > A > B > D: 10")
+    # print(pp.to_preference_matrix())
+    # pm = PreferenceMatrix()
+    # pm.add_candidates("A B C")
+    # pm.add_row("10/20 10/11 41/12")
+    # pm.add_row("10/21 512/2 6/12")
+    # pm.add_row("4/52 4/12 5/23")
+    print(BaldwinRule(pp).run())
+    """ print(VotingResult().candidate(Candidate('A', 20)).better().candidate(Candidate('B', 30))) """
