@@ -5,9 +5,11 @@ from typing import Dict
 from typing import Set
 from itertools import permutations
 
+"""Error raised on Preference Profile to Preference Matrix conversion"""
 class ConversionError(Exception):
     pass
 
+"""Error raised when user provides insufficient input for given voting system"""
 class WrongRepresentationException(Exception):
     pass
 
@@ -27,6 +29,10 @@ class VotingType(Enum):
     SAINTE_LEAGUE = 13
 
 class Candidate:
+    """
+    Class represents single candidate in voting.
+    Name field in required, but votes have no strictly defined usage. It can be anything useful for voting like votes on its own but also scores in Borda Voring or other numeric thing losely connected to voting on its own
+    """
     def __init__(self, name: str, votes: int = 0):
         self.name: str = name
         self.votes: int = votes
@@ -38,14 +44,24 @@ class Candidate:
         return result
 
 class Ranking:
+    """
+    Ranking is single ordered list of candidates pointed by voter.
+    Class is used in Preference Profile input mode
+    """
     def __init__(self, profile: str):
         self.candidates: List[Candidate] = []
         self.votes: int = 0
         self._convert_str_to_object(profile)
         
     def _convert_str_to_object(self, string: str):
-        # sample input 
-        # A > B > C > D : 20
+        """
+        Used to convert input collected from user into Ranking object
+        Args:
+            string (str): user input
+                sample input 
+                A > B > C > D : 20
+        """
+
         string = string.replace(" ", "")
         self.votes = int(string.split(":")[1])
         string = string.split(":")[0]
@@ -56,6 +72,15 @@ class Ranking:
             )
     
     def is_before(self, a: Candidate, b: Candidate) -> bool:
+        """
+        Check if candidate a is before candidate b in ranking
+        Args:
+            a (Candidate)
+            b (Candidate)
+
+        Returns:
+            bool: true if candidate a is first, otherwise false
+        """
         a_pos = 6732487
         b_pos = 6732487
         i = 0
@@ -85,17 +110,36 @@ class Ranking:
         return response
         
 class Preference:
+    """
+    Superclass of any Preference representation like PreferenceProfile or PreferenceMatrix
+    """
     def __init__(self):
         pass
 
 class PreferenceMatrix(Preference):
+    """
+    Represents preference as a matrix. Each field in given as a/b which means candidate in row was before candidate in column a times and b times after him / her.
+    Candidates field contains all Candidates mentioned by user.
+    Votes are matrix on its own - matrix has no named indexes then
+    Sample user input could look like this:
+    #> A B C
+    #> 0/0 10/20 11/9
+    #> 20/10 0/0 3/17
+    #> 9/11 17/3 0/0
+    Cells on diagonal are 0/0 as of A cannot be before or after itself
+    """
     def __init__(self):
         self.candidates: List[Candidate] = []
         self.votes: List[List[Tuple[int]]] = []
     
     def add_candidates(self, string: str):
-        # sample
-        # A B C D E
+        """
+        Matrix construction proces starts with defining columns headers which are candidates names
+        Args:
+            string (str): string with list of candidates separated by single space
+                sample
+                A B C D E
+        """
         candidates_names = string.split(" ")
         for name in candidates_names:
             self.candidates.append(
@@ -103,8 +147,13 @@ class PreferenceMatrix(Preference):
             )
 
     def add_row(self, string: str):
-        # sample
-        # 10/21 0/0 12/19 21/10
+        """
+        Each next typed row is part of votes matrix
+        Args:
+            string (str): string containing list of pairs divided by space
+                sample
+                10/21 0/0 12/19 21/10
+        """
         cells = string.split(" ")
         row = []
         for cell in cells:
@@ -125,18 +174,42 @@ class PreferenceMatrix(Preference):
         return result
 
 class PreferenceProfile(Preference):
+    """
+    Represents Preference as list of candidates in order given by users
+    Rankings holds mentioned orders in form of list of candidates and number of voters with same proposed order
+        Sample rankings are:
+            A > B > D : 20
+            D > A > C : 10
+            A > C > D > B : 5
+        Which means that 20 voters prefers candidate A over candidate B over candidate C
+    Preference profile track names of all users in all rankings - useful in transformation to preference matrix
+    """
     def __init__(self):
         self.rankings: [Ranking] = []
         self.total_votes: int = 0
         self.candidates_names: Set[str] = set()
     
     def add_ranking(self, ranking: str):
+        """
+        Adds single ranking in form of
+            <candidate> > <candidate> > <candidate> ... : <number of voters>
+        Args:
+            ranking (str): string containing list of candidates in prefered order separated by greater than sign
+        """
         ranking = Ranking(ranking)
         self.rankings.append(ranking)
         self.total_votes += ranking.votes
         self._add_candidate_names(ranking)
         
     def _add_candidate_names(self, ranking: Ranking) -> Set[str]:
+        """
+        Adds non duplicating candidates names into tracking list
+        Args:
+            ranking (Ranking): ranking from which names should be fetched
+
+        Returns:
+            Set[str]: set with appended non-duplicative names
+        """
         for candidate in ranking.candidates:
             self.candidates_names.add(candidate.name)
         return self.candidates_names
@@ -148,7 +221,14 @@ class PreferenceProfile(Preference):
             self._add_candidate_names(self.rankings[ranking_idx])
             
     def to_preference_matrix(self) -> PreferenceMatrix:
+        """
+        Converts Preference Profile into Preference Matrix. Reverse conversion is not possible
+        Returns:
+            PreferenceMatrix: equivalent of Preference Profile but in Preference Matrix representation
+        """
+        # first count in how many rankings candidate A was higher than candidate B
         wins: Dict[str, int] = {}
+        # wins key in combined names of candidate A and candidate B
         for ranking in self.rankings:
             better_candidate_idx: int = 0
             ranking_length = len(ranking.candidates)
@@ -158,6 +238,12 @@ class PreferenceProfile(Preference):
                         wins[ranking.candidates[better_candidate_idx].name + ranking.candidates[worser_candidate_idx].name] += ranking.votes
                     except:
                         wins[ranking.candidates[better_candidate_idx].name + ranking.candidates[worser_candidate_idx].name] = ranking.votes
+                # not all rankings contains all candidates, thus not mentioned candidates are added as last and are counted only as candidates which are outranked not outranking others or themselves
+                # e.g.
+                # candidates = {A, B, C, D, E}
+                # single ranking: A > C > B missing D and E which are appended
+                # A > C > B (> D > E)
+                # to wins dictionary will be added keys: AC, AB, CB, but also AD, AE, CD, CE, BD, BE but not DE - added candidates are not outranking each other as we dont know in which order are they
                 missing_candidates = list(self.candidates_names - set(map(lambda e: e.name, ranking.candidates)))
                 for missing_candidate_idx in range(len(missing_candidates)):
                     try:
@@ -168,6 +254,7 @@ class PreferenceProfile(Preference):
         # print(wins)
         pm = PreferenceMatrix()
         pm.add_candidates(" ".join(self.candidates_names))
+        # converting dictionary into matrix
         for better_candidate_name in self.candidates_names:
             row: str = ""
             for worser_candidate_name in self.candidates_names:
@@ -211,6 +298,11 @@ class Tokens(Enum):
         return str(self.value)
      
 class VotingResult:
+    """
+    Voting result contains result of single voting. It somewhat follows builder pattern but somehow more chunky. For normalization enumeration containing constant signs / tokens are used. For e.g. better is modeled by Tokens.BETTER and have > sign
+        Sample usage
+            VotingResult().candidate(<candidate object>).same().candidate(<candidate object>).better(). [...]
+    """ 
     def __init__(self):
         self.token_sequence: List[Token] = []  
                 
@@ -240,6 +332,9 @@ class VotingResult:
         return result
     
 class Rule:
+    """
+    Superclass of any voting system. Contains some common functionalites as preference representation transformation (PreferenceProfile -> PreferenceMatrix). Also has method for checking if conversion was posible otherwise throws an ConversionException
+    """
     def __init__(self, votes: Preference):
         self.preference: Preference = votes
         self.preference_matrix = self._create_preference_matrix(votes)
@@ -268,7 +363,10 @@ class Rule:
             
     def run(self) -> VotingResult:
         raise NotImplementedError
-            
+
+"""End of common api"""
+"""Start of voting rules"""
+        
 class PluralityRule(Rule):
     def __init__(self, votes: Preference):
         super().__init__(votes)
@@ -539,7 +637,10 @@ class BaldwinRule(Rule):
             elif len(total_votes) == 2:
                 second_candidate: Candidate = andidate(list(total_votes)[1], total_votes[list(total_votes)[1]])
                 return VotingResult().candidate(first_candidate).same().candidate(second_candidate)
-        
+
+"""End of voting rules"""
+"""Start of cli implementation"""
+
 class Voting():
     def __init__(self):
         self._run()
