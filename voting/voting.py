@@ -4,6 +4,8 @@ from typing import Tuple
 from typing import Dict
 from typing import Set
 from itertools import permutations
+import os
+import copy
 
 """Error raised on Preference Profile to Preference Matrix conversion"""
 class ConversionError(Exception):
@@ -158,7 +160,7 @@ class PreferenceMatrix(Preference):
         row = []
         for cell in cells:
             fields = cell.split("/")
-            row.append((fields[0], fields[1]))
+            row.append((int(fields[0]), int(fields[1])))
         self.votes.append(row)
     
     def __str__(self) -> str:
@@ -169,7 +171,7 @@ class PreferenceMatrix(Preference):
         result += "\n"
         for row in self.votes:
             for field in row:
-                result += field[0] + "/" + field[1] + "\t"
+                result += str(field[0]) + "/" + str(field[1]) + "\t"
             result += "\n"
         return result
 
@@ -336,9 +338,9 @@ class Rule:
     Superclass of any voting system. Contains some common functionalites as preference representation transformation (PreferenceProfile -> PreferenceMatrix). Also has method for checking if conversion was posible otherwise throws an ConversionException
     """
     def __init__(self, votes: Preference):
-        self.preference: Preference = votes
-        self.preference_matrix = self._create_preference_matrix(votes)
-        self.preference_profile = self._create_preference_profile(votes)
+        self.preference: Preference = copy.deepcopy(votes)
+        self.preference_matrix = self._create_preference_matrix(self.preference)
+        self.preference_profile = self._create_preference_profile(self.preference)
         
         print(self.preference_matrix)
         print(self.preference_profile)
@@ -497,14 +499,16 @@ class CondorceteRule(Rule):
         super().__init__(votes)
         
     def run(self) -> VotingResult:
+        voting_result: VotingResult = VotingResult()
         for row_idx in range(len(self.preference_matrix.votes)):
             all_won: bool = True
             for field in self.preference_matrix.votes[row_idx]:
-                if field[0] < field[1] or (field[0] == 0 and field[1] == 0):
+                if field[0] <= field[1] and (field[0] != 0 and field[0] != 0):
                     all_won = False
                     break
             if all_won:
-                return VotingResult().candidate(self.preference_matrix.candidates[row_idx])
+                voting_result.candidate(self.preference_matrix.candidates[row_idx]).same()
+        return voting_result
                     
 class CopelandRule(Rule):
     def __init__(self, votes: Preference):
@@ -635,64 +639,55 @@ class BaldwinRule(Rule):
             if first_candidate.votes > (self.preference_profile.total_votes // 2):
                 return VotingResult().candidate(first_candidate)
             elif len(total_votes) == 2:
-                second_candidate: Candidate = andidate(list(total_votes)[1], total_votes[list(total_votes)[1]])
+                second_candidate: Candidate = Candidate(list(total_votes)[1], total_votes[list(total_votes)[1]])
                 return VotingResult().candidate(first_candidate).same().candidate(second_candidate)
+
+class MaxMinRule(Rule):
+    def __init__(self, votes: Preference):
+        super().__init__(votes)
+    
+    def run(self) -> VotingResult:
+        mins: Dict[str, int] = {}
+        for row_idx in range(len(self.preference_matrix.votes)):
+            for field in self.preference_matrix.votes[row_idx]:
+                try:
+                    if field[0] == 0 and field[1] == 0:
+                        continue
+                    if mins[self.preference_matrix.candidates[row_idx].name] > field[0]:
+                        mins[self.preference_matrix.candidates[row_idx].name] = field[0]
+                except:
+                    mins[self.preference_matrix.candidates[row_idx].name] = field[0]
+                    # print(field[0])
+        maximal_votes: int = -1
+        # print(mins)
+        voting_result: VotingResult = VotingResult()
+        for candidate_name, candidate_min_votes in mins.items():
+            if candidate_min_votes > maximal_votes:
+                maximal_votes = candidate_min_votes
+                voting_result = VotingResult()
+                voting_result.candidate(Candidate(candidate_name, candidate_min_votes))
+            elif candidate_min_votes == maximal_votes:
+                voting_result.same().candidate(Candidate(candidate_name, candidate_min_votes))
+        return voting_result
 
 """End of voting rules"""
 """Start of cli implementation"""
 
-class Voting():
-    def __init__(self):
-        self._run()
-    
-    def _ask_voting_procedure(self) -> VotingType:
-        print("Choose voting procedure, available are: ")
-        print("Plurality Rule -> 1")
-        print("Antiplurality rule -> 2")
-        print("Approval voting -> 3")
-        print("Plurality run-off -> 4")
-        print("Single Transferable Voite -> 5")
-        print("Borda Rule -> 6")
-        print("Condorcete -> 7")
-        print("Copeland Rule -> 8")
-        print("Kammeny Rule -> 9")
-        print("Coombs rule -> 10")
-        print("Baldwin Rule -> 11")
-        print("d'Hondt Rule -> 12")
-        print("Sainte-Lague Rule -> 13")
-        type: str =  input("\nVoting procedure? ")
-        if(int(type) > 0 and int(type) < 14):
-            return VotingType(int(type))
-        else:
-            print("\nType {} not known \n. Chose agine\n".format(type))
-            self._ask_voting_procedure()
-    
-    def _collect_input_as_profiles(self):
-        print("\n\nType \"end\" to stop")
-        print("Data format is: candidate1 > candidate2 > candidate3 > ... : <number of votes>")
-        while True:
-            profile: str = input()
-    
-    def _run(self):
-        while True:
-            voting_type: VotingType = self._ask_voting_procedure()
-            if voting_type == VotingType.PLURALITY:
-                pass
+
 
 if __name__ == "__main__":
     # Voting()
-    pp = PreferenceProfile()
-    pp.add_ranking("A > B > D > C: 2")
-    pp.add_ranking("A > C > D > B: 7")
-    pp.add_ranking("C > B > A > D: 10")
-    # pp.add_ranking("B > C > A : 24")
-    # pp.add_ranking("D > C > A: 4")
-    # pp.add_ranking("C > A > B > D: 10")
+    # pp = PreferenceProfile()
+    # pp.add_ranking("A > B > C  > D : 5")
+    # pp.add_ranking("B > D > C > A : 7")
+    # pp.add_ranking("C > B > A > D : 7")
+    # pp.add_ranking("D > C > B > A : 4")
     # print(pp.to_preference_matrix())
     # pm = PreferenceMatrix()
     # pm.add_candidates("A B C")
     # pm.add_row("10/20 10/11 41/12")
     # pm.add_row("10/21 512/2 6/12")
     # pm.add_row("4/52 4/12 5/23")
-    print(BaldwinRule(pp).run())
+    # print(BaldwinRule(pp).run())
     """ print(VotingResult().candidate(Candidate('A', 20)).better().candidate(Candidate('B', 30))) """
+    Voting()
