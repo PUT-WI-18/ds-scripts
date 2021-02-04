@@ -673,7 +673,189 @@ class MaxMinRule(Rule):
 """End of voting rules"""
 """Start of cli implementation"""
 
-
+class Voting():
+    def __init__(self):
+        self._run()
+    
+    def _ask_voting_procedure(self) -> VotingType:
+        print("Choose voting procedure, available are: ")
+        print("Plurality Rule -> 1")
+        print("Antiplurality rule -> 2")
+        print("Approval voting -> 3")
+        print("Plurality run-off -> 4")
+        print("Single Transferable Voite -> 5")
+        print("Borda Rule -> 6")
+        print("Condorcete -> 7")
+        print("Copeland Rule -> 8")
+        print("Kammeny Rule -> 9")
+        print("Coombs rule -> 10")
+        print("Baldwin Rule -> 11")
+        print("d'Hondt Rule -> 12")
+        print("Sainte-Lague Rule -> 13")
+        type: str =  input("\nVoting procedure? ")
+        if(int(type) > 0 and int(type) < 14):
+            return VotingType(int(type))
+        else:
+            print("\nType {} not known \n. Chose agine\n".format(type))
+            self._ask_voting_procedure()
+    
+    def _collect_input(self) -> Preference:        
+        empty_lines: int = 0
+        inputs: List[str] = []
+        is_input_correct: bool = False
+        while not is_input_correct:
+            print("Type votes:")
+            print(" Available formats are:")
+            print(" PreferenceProfile")
+            print("     A > E > C > D : 20")
+            print("     E > D > A : 10")
+            print("     ...")
+            print(" Preference Matrix:")
+            print("     A B C D")
+            print("     0/0 10/20 21/9 8/22")
+            print("     20/10 0/0 19/11 2/28")
+            print("     9/21 11/19 0/0 18/12")
+            print("     22/8 28/2 12/8 0/0")
+            print("If everything is ok program returns same input as typed in")
+            print("Two empty lines ends input\n")
+            is_input_correct = True
+            while(empty_lines < 2):
+                line: str = input()
+                if(len(line.strip()) == 0):
+                    empty_lines += 1
+                else:
+                    inputs.append(line)
+                    empty_lines = 0
+            # print(inputs)
+            
+            if len(inputs) == 0:
+                print("No input, try agine\n")
+                is_input_correct = False
+            
+            if inputs[0].find('>') >= 0:
+                preference = PreferenceProfile()
+                for line in inputs:
+                    preference.add_ranking(line)
+            else:
+                preference = PreferenceMatrix()
+                preference.add_candidates(inputs[0])
+                for line in inputs[1:]:
+                    preference.add_row(line)
+            print("Have you typed?\n")
+            print(preference)
+            print()
+            print("Is input correct? [y/n]: ")
+            if input() != "y":
+                is_input_correct = False
+            print("\n\n\n\n")
+            empty_lines = 0
+            inputs = []
+        return preference
+        
+    def _print_separator(self):
+        print("\n")
+        print("-------")
+        print("\n")      
+        
+    def _calculate(self, votes: Preference):
+        self._print_separator()
+        try:
+            print("Plurality Rule:")
+            print(PluralityRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+        
+        self._print_separator()
+        try:
+            print("AntiPlurality Rule:")
+            print(AntiPluralityRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Approval Rule:")
+            print(ApprovalRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Plurality Run-off Rule:")
+            print(PluralityRunOffRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Single Transferable Vote Rule:")
+            print(SingleTransferableVoteRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Borda Rule:")
+            print(BordaRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Condorcete Rule:")
+            print(CondorceteRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Copeland Rule:")
+            print(CopelandRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+        
+        self._print_separator()
+        try:
+            print("Kameny Rule:")
+            print(KamenyRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+        
+            
+        self._print_separator()
+        try:
+            print("MaxMin Rule:")
+            print(MaxMinRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Coombs Rule:")
+            print(CoombsRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+            
+            
+        self._print_separator()
+        try:
+            print("Baldwin Rule:")
+            print(BaldwinRule(votes).run())
+        except:
+            print("Unsuported representation, use PreferenceProfile")
+    
+    def _run(self):
+        preference: Preference = self._collect_input()
+        self._calculate(preference)
 
 if __name__ == "__main__":
     # Voting()
