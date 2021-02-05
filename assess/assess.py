@@ -2,6 +2,9 @@ from enum import Enum
 from typing import *
 
 class Lottery:
+    """
+    Class represents lottery. Better variant should be placed always on left side, so default values for utility of variants are correct
+    """
     
     def __init__(self, left_variant: int, probability_of_left_variant: int, right_variant:int, left_variant_utility: float = 1, right_variant_utility: float = 0):
         self.left_variant: int = left_variant
@@ -11,9 +14,19 @@ class Lottery:
         self.right_variant_utility: float = right_variant_utility
         
     def utility(self) -> float:
+        """
+        Calculates utility of lottery
+        Returns:
+            float: utility
+        """
         return self.left_variant_utility * self.probablilty_of_left_variant + self.right_variant_utility * (1 - self.probablilty_of_left_variant)
         
     def short__str__(self) -> str:
+        """
+        Shortened version of __str__ magic function, presents only lottery, without utilities of variants
+        Returns:
+            str: [description]
+        """
         return "L({}, {}, {})".format(\
                 self.left_variant,
                 self.probablilty_of_left_variant,
@@ -30,11 +43,19 @@ class Lottery:
         )
 
 class ValueSpan:
+    """
+    Defines span of values, for example 1 to 10
+    """
     def __init__(self, left_boundary, right_boundary):
         self.left: float = left_boundary
         self.right: float = right_boundary
         
     def middle_value(self) -> float:
+        """
+        value being average if span
+        Returns:
+            float: average
+        """
         return (self.left + self.right) / 2
 
 class Choice(Enum):
@@ -46,22 +67,39 @@ class Choice(Enum):
         return self.value
 
 class Assess:
+    """
+    Generic class for all assess methods
+    """
     def __init__(self, lottery: Lottery, certain_value: float, value_span: ValueSpan):
+        # method name
         self.name: str = "Generic Assess"
+        # lottery in interation
         self.lottery: Lottery = lottery
+        # certain value for iteration
         self.certain_value: float = certain_value
+        # last choice made by user
         self.last_choice: Choice = None
+        # mark if criterion is gain or cost type
         self.is_gain: bool = (lottery.left_variant > lottery.right_variant)
-        self.certain_value: float = certain_value
+        # span of criterion values for iteration
         self.value_span: ValueSpan = value_span
     
     def choose_certain_value(self):
+        """
+        Represents decision of decident to choose certain value and not lottery
+        """
         raise NotImplementedError
     
     def choose_lottery(self):
+        """
+        Represents decision to take lottery instead of certain value
+        """
         raise NotImplementedError
     
     def choose_indifferent(self):
+        """
+        For decident both lottery and certain value represents same utility
+        """
         raise NotImplementedError
     
     def get_method_name(self) -> str:
@@ -202,13 +240,21 @@ class ProbabilityComparation(Assess):
         ]
 
 class CLI:
+    """
+    CLI for API usage
+    """
     def __init__(self):
         lottery, certain_value = self._get_first_comparation()
         self.comparations: List[Assess] = [self._get_method(lottery, certain_value)]
         self._compare()
         
     def _compare(self):
+        """
+        User main loop of execution
+        """
+        # typing two empty lines ends program
         empty_lines: int = 0
+        # user can work on more than 1 span, and all of spans are stored in array, this is just indexer for array
         active_comparation_idx: int = 0
         self._show_controlls()
         print(self.comparations[active_comparation_idx])
@@ -233,6 +279,8 @@ class CLI:
             elif inputs == "i":
                 print()
                 print("Indifferent")
+                # new spans should be injected into list in place of previous span which should be deleted
+                # exact place of dropped span took righter new span
                 new_comparations: List[Assess] = self.comparations[active_comparation_idx].choose_indifferent()
                 self.comparations.pop(active_comparation_idx)
                 self.comparations.insert(active_comparation_idx, new_comparations[1])
@@ -252,6 +300,15 @@ class CLI:
                 print(self.comparations[active_comparation_idx])
     
     def _get_method(self, lottery: Lottery, certain_value: float) -> Assess:
+        """
+        Displays menu to choose from which method use
+        Args:
+            lottery (Lottery): lottery object, take form previous queries
+            certain_value (float): certain value obtained from user
+
+        Returns:
+            Assess: Full initialised method
+        """
         print("\nChoose method: ")
         print("1 -> Confidence Equivalent with Constant Probability")
         print("2 -> Confidence Equivalent with Changing Probability")
@@ -286,6 +343,13 @@ class CLI:
             )
             
     def _get_first_comparation(self) -> Tuple[Lottery, float]:
+        """
+        Grasp initial data from user in form of
+        L(<left_variant>, <probability_of_left_variant>, <right_variant>) <some equivalent>
+        left variant has by definition utility of 1 and right 0
+        Returns:
+            Tuple[Lottery, float]: initialised lottery and certain value
+        """
         is_input_correct: str = False
         certain_value: float = 0
         lottery: Lottery = None
@@ -334,6 +398,11 @@ class CLI:
         
     
     def _show_controlls(self) -> str:
+        """
+        Simple help
+        Returns:
+            str: ???
+        """
         print("\nPrint this help:\t h")
         print("Choose certain value:\t c")
         print("Choose lottery:\t\t l")
