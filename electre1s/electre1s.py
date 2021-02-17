@@ -1,21 +1,30 @@
 # Skrypt do sprawdzania czy się zgadza c(a,b) i c(b,a)
 #
-# Jeśli trzeba by policzyć cAB i cBA to wpisz cokolwiek
-# w dwie ostatnie kolumny, np. 0 i 0
+# Jeśli trzeba by samodzielnie policzyć cAB i cBA to
+# wpisz cokolwiek w dwie ostatnie kolumny, np. 0 i 0
 #
-# [ 'z' albo 'k', p, q, gA, gB, cAB, cBA]
+# [ 'z' albo 'k', q, p, gA, gB, cAB, cBA]
 
 dane = [
-    ['k',  5,  10,  3,  8,     1,  2/3],
-    ['k',  1,   5,  6,  2,   1/4,    1],
-    ['z',  5,  10,  3,  8,     1,    1],
-    ['z',  1,   5,  6,  2,   1/4,    0],
-    ['z',  3,   9,  1,  7,   1/2,    1],
-    ['k',  3,   9,  1,  7,     1,  2/3],
+    ['k',  5,  10,  3,  8,    1,    0],
+    ['k',  1,   5,  6,  2,  1/4,    1],
+    ['z',  5,  10,  3,  8,    1,    1],
+    ['z',  1,   5,  6,  2,  1/4,    0],
+    ['z',  3,   9,  1,  7,  1/2,    1],
+    ['k',  3,   9,  1,  7,    1,  2/3],
 ]
 
+# dane = [
+#     ['k',  3,   9,  1,  7,    1,  2/3],
+#     ['z',  1,   5,  6,  2,  1/4,    0],
+#     ['z',  5,  10,  3,  8,    1,    1],
+#     ['k',  1,   5,  6,  2,  1/4,    1],
+#     ['k',  5,  10,  3,  8,    1,    0],
+#     ['z',  3,   9,  1,  7,  1/2,    1],
+# ]
 
-# Tu już nic nie zmieniać
+
+# Niżej już nic nie zmieniać
 # --------------------------------------------------
 
 def zysk(q, p, A, B):
@@ -49,18 +58,13 @@ if __name__ == "__main__":
         if p < q:
             print('p nie może być mniejsze od q')
 
-        elif typ.lower() == 'z':
-            z1 = zysk(q, p, A, B)
-            z2 = zysk(q, p, B, A)
-            ans = 'OK' if (z1 == c1 and z2 == c2) else '--'
-            print(f'ZYSK:    c(a,b) = {z1:<7}  c(b,a) = {z2:<7}  {ans}')
+        elif typ in 'zZ':
+            w1 = zysk(q, p, A, B)
+            w2 = zysk(q, p, B, A)
 
-        elif typ.lower() == 'k':
-            k1 = koszt(q, p, A, B)
-            k2 = koszt(q, p, B, A)
-            ans = 'OK' if (k1 == c1 and k2 == c2) else '--' 
-            print(f'KOSZT:   c(a,b) = {k1:<7}  c(b,a) = {k2:<7}  {ans}')
+        elif typ in 'kK':
+            w1 = koszt(q, p, A, B)
+            w2 = koszt(q, p, B, A)
 
-        else:
-            print('Typ musi być Z albo K')
-        
+        ans = 'OK' if (abs(c1-w1)+abs(c2-w2)<0.0001) else '--'
+        print(f'{typ}: c(a,b) = {w1:<7}  c(b,a) = {w2:<7}  {ans}')
