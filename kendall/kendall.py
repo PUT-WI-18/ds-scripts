@@ -1,5 +1,23 @@
-import numpy as np
+# a>b>c>d -> ['a', 'b', 'c', 'd']
+# a~b>c>d -> [['a', 'b'], 'c', 'd']
+# 
+# [Ranking_A, Ranking_B, oczekiwany_wynik]
+# Jeśli masz sam policzyć podaj cokolwiek, np. 0
 
+dane = [
+(   ['d', ['e', 'f']],      ['d', 'e', 'f'],            2/3     ),
+(   ['e', 'f', 'g', 'h'],   [['e','f'],'g','h'],        5/6     ),
+(   ['d', 'e', 'f'],        [['d', 'e'], 'f'],          1/2     ),
+(   ['e', 'f', 'g', 'h'],   [['e', 'f', 'g'], 'h'],    -1/2     ),
+(   ['h', ['g', 'f'], 'e'], ['e', 'f', 'g', 'h'],      -3/4     ),
+(   ['e', 'f', 'g', 'h'],   ['h', 'g', ['f', 'e']],    -5/6     ),
+]
+
+
+# --------------------------------------------------
+
+import numpy as np
+from itertools import chain
 
 class Ranking:
     def __init__(self, ranking):
@@ -8,18 +26,22 @@ class Ranking:
         self.matrix = np.zeros((self.size, self.size))
 
     def toMatrix(self):
+        elements = list(chain(*self.ranking))
+        elements.sort()
+        min = ord(elements[0])
+
         for i, char in enumerate(self.ranking):
             if len(char) != 1:
                 for obj in char:
                     for obj_2 in char:
                         if obj is not obj_2:
-                            self.matrix[ord(obj_2) - 97, ord(obj) - 97] = 0.5
+                            self.matrix[ord(obj_2) - min, ord(obj) - min] = 0.5
 
             for obj_2 in char:
                 tmp_ranking = self.ranking[i + 1:]
                 for obj in tmp_ranking:
                     for element in obj:
-                        self.matrix[ord(obj_2) - 97, ord(element) - 97] = 1
+                        self.matrix[ord(obj_2) - min, ord(element) - min] = 1
 
 class KendallCalculator:
     def __init__(self, ranking_1, ranking_2):
@@ -28,28 +50,19 @@ class KendallCalculator:
         self.kendallCoefficent = 1 - 4 * (self.distance / (np.size(self.matrix, 0) * (np.size(self.matrix, 0) - 1)))
 
 
-
 if __name__ == '__main__':
 
-    # tutaj dodajemy rankingi
-    # np. a~b>c>d
-    ranking_1 = Ranking([['a', 'b'], 'c', 'd'])
-    ranking_1.toMatrix()
+    for (r1, r2, tk) in dane:
+        
+        A = Ranking(r1)
+        A.toMatrix()
 
-    # a>b>c>d
-    ranking_2 = Ranking(['a','b','c','d'])
-    ranking_2.toMatrix()
+        B = Ranking(r2)
+        B.toMatrix()
 
-    # d>c>b>a
-    ranking_3 = Ranking(['d','c','b','a'])
-    ranking_3.toMatrix()
+        kendallCalculator = KendallCalculator(A.matrix, B.matrix)
 
-    # a>b>c~d
-    ranking_4 = Ranking(['a', 'b', ['c', 'd']])
-    ranking_4.toMatrix()
+        dk = kendallCalculator.distance
+        wsp = kendallCalculator.kendallCoefficent
 
-    # jako argumenty podajemy rankingi między którymi chcemy obliczyć współczynnik Kendalla
-    kendallCalculator = KendallCalculator(ranking_2.matrix, ranking_4.matrix)
-
-    print("dk = " + str(kendallCalculator.distance))
-    print("wspolczynnik = " + str(kendallCalculator.kendallCoefficent))
+        print(f"dk = {dk:<3}  tk = {wsp:<20}  {'OK' if abs(wsp-tk)<0.0001 else '--'}")
