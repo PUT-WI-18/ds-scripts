@@ -36,7 +36,7 @@ def zysk(q, p, A, B):
     elif B >= Ap:
         return 0
     else:
-        return (B - Aq) / (Ap - Aq)
+        return 1 - ((B - Aq) / (Ap - Aq))
 
 
 def koszt(q, p, A, B):
