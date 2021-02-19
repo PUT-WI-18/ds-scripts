@@ -1,14 +1,17 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <string>
 
 
 using namespace std;
 
+int ilosc_smutnych_procesorow = 0;
+
 bool checkCertainRule(vector<string> arr, string rule) {
 
 	//conditions number
-	cout << "Sprawdzanie czy regula " << rule << " jest regula pewna" << endl;
+	// cout << "Sprawdzanie czy regula " << rule << " jest regula pewna" << endl;
 	bool same = true;
 	for (size_t i = 0; i < arr.size(); i++) {
 		same = true;
@@ -19,11 +22,11 @@ bool checkCertainRule(vector<string> arr, string rule) {
 			}
 		}
 		if (same && arr[i][arr[i].size() - 1] != rule[arr[i].size() - 1]) {
-			cout << "Nie jest to regula pewna!" << endl;
+			// cout << "Nie jest to regula pewna!" << endl;
 			return false;
 		}
 	}
-	cout << "To jest regula pewna! " << endl;
+	// cout << "To jest regula pewna! " << endl;
 	return true;
 }
 
@@ -67,7 +70,7 @@ bool checkCertainMinimalRule(vector<string> arr, string rule) {
 			vector<string> combinations = comb(nCon, i, rule);
 			for (size_t j = 0; j < combinations.size(); j++) {
 				if (checkCertainRule(arr, combinations[j])) {
-					cout << "Regula " << combinations[j] << " jest regula pewna, co oznacza, ze regula " << rule << " nie jest minimalna!" << endl;
+					// cout << "Regula " << combinations[j] << " jest regula pewna, co oznacza, ze regula " << rule << " nie jest minimalna!" << endl;
 					return false;
 				}
 			}
@@ -78,8 +81,39 @@ bool checkCertainMinimalRule(vector<string> arr, string rule) {
 	}
 	return true;
 }
-
-
+/*
+1332X
+2121X
+1332X
+1231Y
+2121Y
+1322Y
+2122X
+*/
+void umrzyj_w_spokoju(int powaga_sprawy, char narzedzie_zbrodni, string miejsca_zbrodni, vector<string> swiadkowie){
+	// cout << powaga_sprawy << endl;
+	if(ilosc_smutnych_procesorow % 100000000 == 0) cout << ilosc_smutnych_procesorow << endl;
+	if(powaga_sprawy == 0){
+		miejsca_zbrodni.append(to_string(narzedzie_zbrodni));
+		if (checkCertainMinimalRule(swiadkowie, miejsca_zbrodni)) {
+			cout << endl << "Regula " << miejsca_zbrodni << " jest minimalna pewna regula!" << endl;
+		}
+		ilosc_smutnych_procesorow++;
+		/*else {
+			cout << endl << "Regula " << miejsca_zbrodni << " nie jest minimalna pewna regula!" << endl;
+		}*/
+	}
+	else{
+		powaga_sprawy--;
+		// scena morderstwa
+		// ilosc obliczen 100 ^ powaga_sprawy
+		for(int i = 33; i < 127; i++){
+			miejsca_zbrodni += narzedzie_zbrodni;
+			umrzyj_w_spokoju(powaga_sprawy, (char) i, miejsca_zbrodni, swiadkowie);
+			miejsca_zbrodni.pop_back();
+		}
+	}
+}
 
 int main() {
 	int objects, attributes;
@@ -99,17 +133,7 @@ int main() {
 			return 0;
 		}
 	}
-	cout << "Przyklad reguly: If A=2 and C=2 then Y | w programie dla 4 atrybutow: 2_2_Y" << endl;
-	while(true){
-	string rule;
-	cout << "Podaj regule do sprawdzenia: ";
-	cin >> rule;
-	if (checkCertainMinimalRule(arr, rule)) {
-		cout << endl << "Regula " << rule << " jest minimalna pewna regula!" << endl;
-	}
-	else {
-		cout << endl << "Regula " << rule << " nie jest minimalna pewna regula!" << endl;
-	}
-	}
+	attributes--;
+	umrzyj_w_spokoju(attributes, 0, "", arr);
 	return 0;
 }
