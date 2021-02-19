@@ -99,9 +99,10 @@ int main() {
 			return 0;
 		}
 	}
-	cout << "Przyklad reguly: If A=2 and C=2 then Y | w programie dla 4 atrybutow: 2_2_Y\nPodaj regule do sprawdzenia: ";
+	cout << "Przyklad reguly: If A=2 and C=2 then Y | w programie dla 4 atrybutow: 2_2_Y";
 	while(true){
 	string rule;
+	cout << "Podaj regule do sprawdzenia: ";
 	cin >> rule;
 	if (checkCertainMinimalRule(arr, rule)) {
 		cout << endl << "Regula " << rule << " jest minimalna pewna regula!" << endl;
