@@ -400,9 +400,9 @@ class AntiPluralityRule(Rule):
         winners_votes: Dict[str, int] = dict()
         for ranking in self.preference_profile.rankings:
             try:
-                winners_votes[ranking.last_candidate().name] += ranking.last_candidate().votes
+                winners_votes[ranking.last_candidate().name] += ranking.firs_candidate().votes
             except:
-                winners_votes[ranking.last_candidate().name] = ranking.last_candidate().votes
+                winners_votes[ranking.last_candidate().name] = ranking.first_candidate().votes
         winning_candidate: Candidate = Candidate('ASFASF', 75643211234567)
         voting_result: VotingResult = VotingResult()
         for winner in winners_votes.keys():
