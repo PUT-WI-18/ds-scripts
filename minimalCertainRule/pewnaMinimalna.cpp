@@ -99,7 +99,7 @@ int main() {
 			return 0;
 		}
 	}
-	cout << "Przyklad reguly: If A=2 and C=2 then Y | w programie dla 4 atrybutow: 2_2_Y";
+	cout << "Przyklad reguly: If A=2 and C=2 then Y | w programie dla 4 atrybutow: 2_2_Y" << endl;
 	while(true){
 	string rule;
 	cout << "Podaj regule do sprawdzenia: ";
