@@ -3,9 +3,14 @@
 from itertools import permutations  
 
 #### DANE 
-matrixName=['M', 'W', 'B']
-dane = [ ['M', 'W', 'B'], ['W','B','M'], ['B','M','W']]
-glosy = [7,9,4];
+
+matrixName=['A','B','C','D']
+dane = [
+    ['A','C','D','B'],
+    ['B','A','C','D'],
+    ['C','D','B','A'],
+    ['D','A','B','C']   ]
+glosy = [5,12,7,9]
 
 '''
 matrixName=['A','B','C','D','E']
