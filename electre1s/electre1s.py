@@ -1,9 +1,9 @@
 # Skrypt do sprawdzania czy się zgadza c(a,b) i c(b,a)
 #
-# Jeśli trzeba by samodzielnie policzyć cAB i cBA to
-# wpisz cokolwiek w dwie ostatnie kolumny, np. 0 i 0
+# Jeśli trzeba by samodzielnie policzyć c(a,b) i c(b,a)
+# to wpisz cokolwiek w dwie ostatnie kolumny, np. 0 i 0
 #
-# [ 'z' albo 'k', q, p, gA, gB, cAB, cBA]
+# [ 'z' albo 'k', q, p, g(A), g(B), c(ab), c(ba)]
 
 dane = [
     ['k',  5,  10,  3,  8,    1,    0],
@@ -13,15 +13,6 @@ dane = [
     ['z',  3,   9,  1,  7,  1/2,    1],
     ['k',  3,   9,  1,  7,    1,  2/3],
 ]
-
-# dane = [
-#     ['k',  3,   9,  1,  7,    1,  2/3],
-#     ['z',  1,   5,  6,  2,  1/4,    0],
-#     ['z',  5,  10,  3,  8,    1,    1],
-#     ['k',  1,   5,  6,  2,  1/4,    1],
-#     ['k',  5,  10,  3,  8,    1,    0],
-#     ['z',  3,   9,  1,  7,  1/2,    1],
-# ]
 
 
 # Niżej już nic nie zmieniać
@@ -40,10 +31,10 @@ def zysk(q, p, A, B):
 
 
 def koszt(q, p, A, B):
-    Aq = max(0, A - q)
-    Ap = max(0, A - p)
+    Aq = A - q
+    Ap = A - p
     
-    if B >= Aq or Aq == 0:
+    if B >= Aq:
         return  1
     elif B <= Ap:
         return 0
@@ -67,4 +58,4 @@ if __name__ == "__main__":
             w2 = koszt(q, p, B, A)
 
         ans = 'OK' if (abs(c1-w1)+abs(c2-w2)<0.0001) else '--'
-        print(f'{typ}: c(a,b) = {w1:<7}  c(b,a) = {w2:<7}  {ans}')
+        print(f'{typ}: c(a,b) = {w1:<20}  c(b,a) = {w2:<20}  {ans}')
