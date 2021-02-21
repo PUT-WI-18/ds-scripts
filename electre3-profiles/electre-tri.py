@@ -68,7 +68,7 @@ class Pair:
 
 if __name__ == '__main__':
     pairs = []
-    # types, weight, values_q, values_p, values_v, values_a, values_b
+
     '''
     g1 – zysk, waga: 5, q1(b1)=0.3, p1(b1)=0.9, v1(b1)=1.8, q1(b2)=0.7, p1(b2)=1.2, v1(b2)=2.9
     g2 – koszt, waga: 2, q2(b1)=0.4, p2(b1)=0.8, v2(b1)=2.1, q2(b2)=0.9, p2(b2)=1.7, v2(b2)=2.5,
@@ -79,6 +79,7 @@ if __name__ == '__main__':
     b1 1.0     7.0
     b2 6.0     2.0
     '''
+    # types, weight, values_q, values_p, values_v, values_a, values_b
     pairs.append(Pair(['z', 'k'], [5, 2], [0.3, 0.4], [0.9, 0.8], [1.8, 2.1], [1.7, 7.6], [1.0, 7.0]))  # a, b1
     pairs.append(Pair(['z', 'k'], [5, 2], [0.3, 0.4], [0.9, 0.8], [1.8, 2.1], [5.1, 4.1], [1.0, 7.0]))  # e, b1
     pairs.append(Pair(['z', 'k'], [5, 2], [0.7, 0.9], [1.2, 1.7], [2.9, 2.5], [1.7, 7.6], [6.0, 2.0]))  # a ,b2
@@ -88,5 +89,5 @@ if __name__ == '__main__':
         pair.calculate()
         pair.calculate_coefficent()
         pair.calculate_sigma()
-        print(pair.c, pair.d, pair.coefficent, pair.sigma)
+        print('c:', pair.c, 'D: ', pair.d, 'C: ', pair.coefficent, 'sigma: ', pair.sigma)
 
