@@ -23,8 +23,8 @@
 # [ 'z' albo 'k', q, p, g(A), g(B), c(ab), c(ba), weight]
 
 dane = [
-    ['z', 20, 50, 100, 150, 0,0, 2],
-    ['k', 500, 900, 1000, 50000, 0, 0, 3]
+    ['k', 0.8, 1.5, 3.5, 3.0, 0, 0, 3],
+    ['k', 0.5, 1.5, 3.0, 6.0, 0, 0, 2]
 ]
 
 
@@ -76,8 +76,8 @@ if __name__ == "__main__":
             w1 = koszt(q, p, A, B)
             w2 = koszt(q, p, B, A)
         
-        w1_sum += w1
-        w2_sum += w2
+        w1_sum += w1 * weight
+        w2_sum += w2 * weight
         weight_sum += weight
         
         ans = 'OK' if (abs(c1-w1)+abs(c2-w2)<0.0001) else '--'
