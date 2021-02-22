@@ -58,9 +58,9 @@ class Pair:
 
     def calculate_sigma(self):
         temp_d = [i for i in self.d if i > self.coefficent]
-        product = 0
+        product = 1
         for i in temp_d:
-            product += (1 - i)/(1 - self.coefficent)
+            product *= (1 - i)/(1 - self.coefficent)
 
         self.sigma = self.coefficent * product
 
